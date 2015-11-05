@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>АДМИНИСТРИРОВАНИЕ POSTGRESQL by rgordeev</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">АДМИНИСТРИРОВАНИЕ POSTGRESQL</h1>
+      <h2 class="project-tagline">Материалы курса по PostgreSQL от компании Postgres Professional</h2>
+      <a href="https://github.com/rgordeev/pgcourse" class="btn">View on GitHub</a>
+      <a href="https://github.com/rgordeev/pgcourse/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/rgordeev/pgcourse/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="АДМИНИСТРИРОВАНИЕ-postgresql" class="anchor" href="#%D0%90%D0%94%D0%9C%D0%98%D0%9D%D0%98%D0%A1%D0%A2%D0%A0%D0%98%D0%A0%D0%9E%D0%92%D0%90%D0%9D%D0%98%D0%95-postgresql" aria-hidden="true"><span class="octicon octicon-link"></span></a>АДМИНИСТРИРОВАНИЕ POSTGRESQL</h1>
+
+<h2>
+<a id="Базовый-курс" class="anchor" href="#%D0%91%D0%B0%D0%B7%D0%BE%D0%B2%D1%8B%D0%B9-%D0%BA%D1%83%D1%80%D1%81" aria-hidden="true"><span class="octicon octicon-link"></span></a>Базовый курс</h2>
+
+<h3>
+<a id="16-18-декабря-2015-года-Тверь" class="anchor" href="#16-18-%D0%B4%D0%B5%D0%BA%D0%B0%D0%B1%D1%80%D1%8F-2015-%D0%B3%D0%BE%D0%B4%D0%B0-%D0%A2%D0%B2%D0%B5%D1%80%D1%8C" aria-hidden="true"><span class="octicon octicon-link"></span></a>16-18 декабря 2015 года. Тверь</h3>
+
+<h1>
+<a id="ЛЕКТОРЫ" class="anchor" href="#%D0%9B%D0%95%D0%9A%D0%A2%D0%9E%D0%A0%D0%AB" aria-hidden="true"><span class="octicon octicon-link"></span></a>ЛЕКТОРЫ</h1>
+
+<h2>
+<a id="Егор-Рогов" class="anchor" href="#%D0%95%D0%B3%D0%BE%D1%80-%D0%A0%D0%BE%D0%B3%D0%BE%D0%B2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Егор Рогов</h2>
+
+<p>Директор по разработке образовательных программ
+Закончил факультет Вычислительной Математики и Кибернетики МГУ им. М. В. Ломоносова.
+Системами управления базами данных занимается более 15 лет в качестве разработчика, руководителя проектов и преподавателя.
+С 2015 года работает в компании "Постгрес Профессиональный" и занимается подготовкой образовательных программ.</p>
+
+<h2>
+<a id="Павел-Лузанов" class="anchor" href="#%D0%9F%D0%B0%D0%B2%D0%B5%D0%BB-%D0%9B%D1%83%D0%B7%D0%B0%D0%BD%D0%BE%D0%B2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Павел Лузанов</h2>
+
+<p>Директор по работе с учебными центрами
+В 2013г. присоединился к сообществу PostgreSQL занимаясь переводом официальной документации на русский язык.
+В компании "Постгрес Профессиональный" с момента основания в начале 2015г.
+Руководитель образовательных программ: подготовка курсов, ВУЗовские программы, перевод официальной документации, проведение семинаров и пр.</p>
+
+<p>До этого - более 20 лет опыта работы с СУБД и средствами разработки Oracle в качестве разработчика, преподавателя, консультанта и менеджера проектов по внедрению ERP системы Oracle E-Business Suite.
+We’ve crafted some handsome templates for you to use. Go ahead and click 'Continue to layouts' to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved.</p>
+
+<h1>
+<a id="ДЕНЬ-1" class="anchor" href="#%D0%94%D0%95%D0%9D%D0%AC-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>ДЕНЬ 1</h1>
+
+<h2>
+<a id="16-декабря--1100" class="anchor" href="#16-%D0%B4%D0%B5%D0%BA%D0%B0%D0%B1%D1%80%D1%8F--1100" aria-hidden="true"><span class="octicon octicon-link"></span></a>16 декабря / 11:00</h2>
+
+<h4>
+<a id="Введение-в-postgresql" class="anchor" href="#%D0%92%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5-%D0%B2-postgresql" aria-hidden="true"><span class="octicon octicon-link"></span></a>Введение в PostgreSQL</h4>
+
+<p>Что такое PostgreSQL / Кто использует / Основные свойства / История развития / Форки PostgreSQL / Разработчики / Версии системы / Цикл разработки /Поддержка / Новые возможности 9.5</p>
+
+<h3>
+<a id="Архитектура-postgresql" class="anchor" href="#%D0%90%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0-postgresql" aria-hidden="true"><span class="octicon octicon-link"></span></a>Архитектура PostgreSQL</h3>
+
+<p>Cтруктуры памяти, буферный кэш / Серверные процессы / Файловая система / Журнал упреждающей записи / Транзакции и многоверсинность / Схема обработки запросов / Расширяемость системы</p>
+
+<h3>
+<a id="Установка-postgresql" class="anchor" href="#%D0%A3%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-postgresql" aria-hidden="true"><span class="octicon octicon-link"></span></a>Установка PostgreSQL</h3>
+
+<p>Установка PostgreSQL из исходных кодов / Создание кластера БД / Запуск и останов сервера</p>
+
+<h3>
+<a id="Использование-psql" class="anchor" href="#%D0%98%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5-psql" aria-hidden="true"><span class="octicon octicon-link"></span></a>Использование psql</h3>
+
+<p>Запуск psql и подключение к БД / Получение справочной информации / Выполнение команд SQL / Команды и переменные psql / Файлы, используемые psql</p>
+
+<h3>
+<a id="Базы-данных" class="anchor" href="#%D0%91%D0%B0%D0%B7%D1%8B-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85" aria-hidden="true"><span class="octicon octicon-link"></span></a>Базы данных</h3>
+
+<p>Базы данных / Создание БД из шаблона / Размер, занимаемый базой данных / Изменение и удаление БД</p>
+
+<h3>
+<a id="Табличные-пространства" class="anchor" href="#%D0%A2%D0%B0%D0%B1%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D0%B5-%D0%BF%D1%80%D0%BE%D1%81%D1%82%D1%80%D0%B0%D0%BD%D1%81%D1%82%D0%B2%D0%B0" aria-hidden="true"><span class="octicon octicon-link"></span></a>Табличные пространства</h3>
+
+<p>Табличные пространства / Создание, изменение и удаление табличных пространств / Хранение данных в файловой системе / Перемещение данных</p>
+
+<h1>
+<a id="ДЕНЬ-2" class="anchor" href="#%D0%94%D0%95%D0%9D%D0%AC-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>ДЕНЬ 2</h1>
+
+<h2>
+<a id="17-декабря--1100" class="anchor" href="#17-%D0%B4%D0%B5%D0%BA%D0%B0%D0%B1%D1%80%D1%8F--1100" aria-hidden="true"><span class="octicon octicon-link"></span></a>17 декабря / 11:00</h2>
+
+<h3>
+<a id="Системный-каталог-Словарь-данных" class="anchor" href="#%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%BD%D1%8B%D0%B9-%D0%BA%D0%B0%D1%82%D0%B0%D0%BB%D0%BE%D0%B3-%D0%A1%D0%BB%D0%BE%D0%B2%D0%B0%D1%80%D1%8C-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85" aria-hidden="true"><span class="octicon octicon-link"></span></a>Системный каталог (Словарь данных)</h3>
+
+<p>Системный каталог / Системный каталог в psql / Правила именования объектов / Общие таблицы кластера БД / Специальные типы данных / Системные представления</p>
+
+<h3>
+<a id="Основные-объекты-БД" class="anchor" href="#%D0%9E%D1%81%D0%BD%D0%BE%D0%B2%D0%BD%D1%8B%D0%B5-%D0%BE%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D1%8B-%D0%91%D0%94" aria-hidden="true"><span class="octicon octicon-link"></span></a>Основные объекты БД</h3>
+
+<p>Таблицы, основные типы данных и ограничения целостности / Последовательности / Индексы / Хранимые функции / Триггеры / Правила / Секционирование / Представления, материализованные представления</p>
+
+<h3>
+<a id="Пользователи-и-роли" class="anchor" href="#%D0%9F%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D0%B5%D0%BB%D0%B8-%D0%B8-%D1%80%D0%BE%D0%BB%D0%B8" aria-hidden="true"><span class="octicon octicon-link"></span></a>Пользователи и роли</h3>
+
+<p>Концепция управления доступом / Создание ролей и их атрибуты / Участие ролей в группах / Изменение и удаление ролей / Получение информации</p>
+
+<h3>
+<a id="Схемы" class="anchor" href="#%D0%A1%D1%85%D0%B5%D0%BC%D1%8B" aria-hidden="true"><span class="octicon octicon-link"></span></a>Схемы</h3>
+
+<p>Понятие схемы / Управление схемами и объектами в них / Поиск объектов при наличии нескольких схем / Специальные схемы</p>
+
+<h3>
+<a id="Привилегии" class="anchor" href="#%D0%9F%D1%80%D0%B8%D0%B2%D0%B8%D0%BB%D0%B5%D0%B3%D0%B8%D0%B8" aria-hidden="true"><span class="octicon octicon-link"></span></a>Привилегии</h3>
+
+<p>Доступ к объектам БД / Виды привилегий / Выдача и отзыв привилегий / Просмотр привилегий / Примеры управления доступом</p>
+
+<h3>
+<a id="Конфигурирование-сервера" class="anchor" href="#%D0%9A%D0%BE%D0%BD%D1%84%D0%B8%D0%B3%D1%83%D1%80%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5-%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80%D0%B0" aria-hidden="true"><span class="octicon octicon-link"></span></a>Конфигурирование сервера</h3>
+
+<p>Файл postgresql.conf / Файл postgresql.auto.conf (ALTER SYSTEM) / Представление pg_settings / Работа с параметрами во время выполнения / Установка параметров для БД и/или ролей / Установка параметров для функций / С чего начать настройку</p>
+
+<h3>
+<a id="Подключение-и-аутентификация" class="anchor" href="#%D0%9F%D0%BE%D0%B4%D0%BA%D0%BB%D1%8E%D1%87%D0%B5%D0%BD%D0%B8%D0%B5-%D0%B8-%D0%B0%D1%83%D1%82%D0%B5%D0%BD%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D1%8F" aria-hidden="true"><span class="octicon octicon-link"></span></a>Подключение и аутентификация</h3>
+
+<p>Конфигурационные файлы для аутентификации Основные настройки / Простые методы аутентификации / Аутентификация по паролю / Внешняя аутентификация и сопоставление имен</p>
+
+<h1>
+<a id="ДЕНЬ-3" class="anchor" href="#%D0%94%D0%95%D0%9D%D0%AC-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>ДЕНЬ 3</h1>
+
+<h2>
+<a id="18-декабря--1100" class="anchor" href="#18-%D0%B4%D0%B5%D0%BA%D0%B0%D0%B1%D1%80%D1%8F--1100" aria-hidden="true"><span class="octicon octicon-link"></span></a>18 декабря / 11:00</h2>
+
+<h3>
+<a id="Сопровождение-postgresql" class="anchor" href="#%D0%A1%D0%BE%D0%BF%D1%80%D0%BE%D0%B2%D0%BE%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5-postgresql" aria-hidden="true"><span class="octicon octicon-link"></span></a>Сопровождение PostgreSQL</h3>
+
+<p>Процедура очистка и задачи, которые она решает / Перестроение индексов</p>
+
+<h3>
+<a id="Мониторинг-работы" class="anchor" href="#%D0%9C%D0%BE%D0%BD%D0%B8%D1%82%D0%BE%D1%80%D0%B8%D0%BD%D0%B3-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%8B" aria-hidden="true"><span class="octicon octicon-link"></span></a>Мониторинг работы</h3>
+
+<p>Средства операционной системы / Сбор и просмотр статистики / Дополнительные расширения / Просмотр и анализ журнала сервера / Ротация журналов сервера</p>
+
+<h3>
+<a id="Логическое-резервирование" class="anchor" href="#%D0%9B%D0%BE%D0%B3%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5-%D1%80%D0%B5%D0%B7%D0%B5%D1%80%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5" aria-hidden="true"><span class="octicon octicon-link"></span></a>Логическое резервирование</h3>
+
+<p>Логическое и физическое резервирование / Копирование отдельных таблиц / Резервирование и восстановление баз данных и кластера</p>
+
+<h3>
+<a id="Физическое-резервирование" class="anchor" href="#%D0%A4%D0%B8%D0%B7%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5-%D1%80%D0%B5%D0%B7%D0%B5%D1%80%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5" aria-hidden="true"><span class="octicon octicon-link"></span></a>Физическое резервирование</h3>
+
+<p>Холодное резервирование средствами ОС / Горячее резервирование (непрерывное архивирование) / Архивация журналов упреждающей записи / Базовая резервная копия / Процедура восстановления</p>
+
+<h1>
+<a id="ИНФОРМАЦИЯ" class="anchor" href="#%D0%98%D0%9D%D0%A4%D0%9E%D0%A0%D0%9C%D0%90%D0%A6%D0%98%D0%AF" aria-hidden="true"><span class="octicon octicon-link"></span></a>ИНФОРМАЦИЯ</h1>
+
+<p>для прохождения курса понадобится:</p>
+
+<h2>
+<a id="Материалы-курса" class="anchor" href="#%D0%9C%D0%B0%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BB%D1%8B-%D0%BA%D1%83%D1%80%D1%81%D0%B0" aria-hidden="true"><span class="octicon octicon-link"></span></a>Материалы курса</h2>
+
+<p>/скачать материал/</p>
+
+<h2>
+<a id="Ноутбук-с-ОС-ubuntu" class="anchor" href="#%D0%9D%D0%BE%D1%83%D1%82%D0%B1%D1%83%D0%BA-%D1%81-%D0%9E%D0%A1-ubuntu" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ноутбук с ОС Ubuntu</h2>
+
+<p>/скачать инструкцию/</p>
+
+<h2>
+<a id="Участие-БЕСПЛАТНО" class="anchor" href="#%D0%A3%D1%87%D0%B0%D1%81%D1%82%D0%B8%D0%B5-%D0%91%D0%95%D0%A1%D0%9F%D0%9B%D0%90%D0%A2%D0%9D%D0%9E" aria-hidden="true"><span class="octicon octicon-link"></span></a>Участие БЕСПЛАТНО</h2>
+
+<p>требуется предварительная регистрация</p>
+
+<p>По окончанию будут выданы сертификаты слушателей от Postgres Professional</p>
+
+<h1>
+<a id="ЗАПИСАТЬСЯ-НА-КУРС" class="anchor" href="#%D0%97%D0%90%D0%9F%D0%98%D0%A1%D0%90%D0%A2%D0%AC%D0%A1%D0%AF-%D0%9D%D0%90-%D0%9A%D0%A3%D0%A0%D0%A1" aria-hidden="true"><span class="octicon octicon-link"></span></a>ЗАПИСАТЬСЯ НА КУРС</h1>
+
+<h2>
+<a id="Гордеев-Роман" class="anchor" href="#%D0%93%D0%BE%D1%80%D0%B4%D0%B5%D0%B5%D0%B2-%D0%A0%D0%BE%D0%BC%D0%B0%D0%BD" aria-hidden="true"><span class="octicon octicon-link"></span></a>Гордеев Роман</h2>
+
+<h3>
+<a id="email-romangordeevmailru" class="anchor" href="#email-romangordeevmailru" aria-hidden="true"><span class="octicon octicon-link"></span></a>email: <a href="mailto:roman.gordeev@mail.ru">roman.gordeev@mail.ru</a>
+</h3>
+
+<h3>
+<a id="телефон" class="anchor" href="#%D1%82%D0%B5%D0%BB%D0%B5%D1%84%D0%BE%D0%BD" aria-hidden="true"><span class="octicon octicon-link"></span></a>телефон:</h3>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/rgordeev/pgcourse">АДМИНИСТРИРОВАНИЕ POSTGRESQL</a> is maintained by <a href="https://github.com/rgordeev">rgordeev</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
