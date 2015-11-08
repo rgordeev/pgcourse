@@ -13,7 +13,7 @@
 
 [![Join the chat at https://gitter.im/rgordeev/pgcourse](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/rgordeev/pgcourse?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) Присоединяйтесь к каналу курса на Gitter
 
-## Официальный интерент ресурс курса 
+## Официальный интернет ресурс курса 
 
 [Программа курса и регистрация](http://rgordeev.github.io/pgcourse)
 
