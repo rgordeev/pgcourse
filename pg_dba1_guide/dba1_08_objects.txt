@@ -1,0 +1,559 @@
+
+ТАБЛИЦЫ, ТИПЫ И ОГРАНИЧЕНИЯ
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Пример создания таблицы с разными типами столбцов и ограничениями целостности:
+
+        => create table people(
+        =>   id numeric primary key,
+        =>   name varchar(100) not null,
+        =>   employed boolean,
+        =>   constraint uname unique(name)
+        => );
+        CREATE TABLE
+
+Синтаксис соответствуют стандарту. Можно использовать различные типы данных, указывать
+ограничения целостности как на уровне отдельных полей, так и на уровне таблицы.
+
+-----------------------------------------------------------------------
+
+Создадим аналогичные, но временные таблицы.
+Для этого воспользуемся специальным синтаксисом LIKE:
+
+        => begin;
+        BEGIN
+
+        => create temporary table people_temp_delete(like people)
+        => on commit delete rows;
+        CREATE TABLE
+
+        => create temporary table people_temp_preserve(like people)
+        => on commit preserve rows;
+        CREATE TABLE
+
+        => create temporary table people_temp_drop(like people)
+        => on commit drop;
+        CREATE TABLE
+
+-----------------------------------------------------------------------
+
+        => insert into people_temp_delete values (1,'Иванов',true);
+        INSERT 0 1
+
+        => insert into people_temp_preserve values (1,'Иванов',true);
+        INSERT 0 1
+
+        => insert into people_temp_drop values (1,'Иванов',true);
+        INSERT 0 1
+
+        => commit;
+        COMMIT
+
+Что произошло при фиксации изменений?
+
+-----------------------------------------------------------------------
+
+Таблица on commit delete rows пуста:
+
+        => select * from people_temp_delete;
+         id | name | employed 
+        ----+------+----------
+        (0 rows)
+        
+
+-----------------------------------------------------------------------
+
+Таблица on commit preserve rows сохранила строки:
+
+        => select * from people_temp_preserve;
+         id |  name  | employed 
+        ----+--------+----------
+          1 | Иванов | t
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Таблица on commit drop table больше не существует:
+
+        => select * from people_temp_drop;
+        ERROR:  relation "people_temp_drop" does not exist
+        LINE 1: select * from people_temp_drop;
+                              ^
+
+-----------------------------------------------------------------------
+
+В любом случае временные таблицы живут не дольше, чем сеанс. Завершим текущий и начнем следующий:
+
+        => \q
+
+        psql 
+
+        => select * from people_temp_delete;
+        ERROR:  relation "people_temp_delete" does not exist
+        LINE 1: select * from people_temp_delete;
+                              ^
+
+        => select * from people_temp_preserve;
+        ERROR:  relation "people_temp_preserve" does not exist
+        LINE 1: select * from people_temp_preserve;
+                              ^
+
+-----------------------------------------------------------------------
+
+При этом обычная таблица, разумеется, осталась:
+
+        => select * from people;
+         id | name | employed 
+        ----+------+----------
+        (0 rows)
+        
+
+-----------------------------------------------------------------------
+
+ПОСЛЕДОВАТЕЛЬНОСТИ
+~~~~~~~~~~~~~~~~~~
+
+Создадим последовательность:
+
+        => create sequence s start with 2 cache 10;
+        CREATE SEQUENCE
+
+Ее можно использовать, например, для генерации уникального ключа:
+
+        => insert into people values (nextval('s'), 'Петров', false);
+        INSERT 0 1
+
+        => select currval('s');
+         currval 
+        ---------
+               2
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Поскольку при создании последовательности мы указали cache 10, сеансы будут кэшировать
+диапазоны значений. Это приведет к тому, что два сеанса могут выдавать номера не по порядку:
+
+        |  psql 
+
+        |  => select nextval('s');
+        |   nextval 
+        |  ---------
+        |        12
+        |  (1 row)
+        |  
+
+        => select nextval('s');
+         nextval 
+        ---------
+               3
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+        |  => select nextval('s');
+        |   nextval 
+        |  ---------
+        |        13
+        |  (1 row)
+        |  
+
+        => select nextval('s');
+         nextval 
+        ---------
+               4
+        (1 row)
+        
+
+        |  => \q
+
+-----------------------------------------------------------------------
+
+ИНДЕКСЫ
+~~~~~~~
+
+Создадим большую таблицу:
+
+        => create table bigtable(id serial, t text);
+        CREATE TABLE
+
+        => insert into bigtable
+        =>   select s.id, 'This is a line #' || s.id from generate_series(1,1000000) as s(id);
+        INSERT 0 1000000
+
+        => select count(*) from bigtable;
+          count  
+        ---------
+         1000000
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Сколько времени занимает поиск одного значения в такой таблице?
+
+        => \timing on
+        Timing is on.
+
+        => select * from bigtable where id=42;
+         id |         t          
+        ----+--------------------
+         42 | This is a line #42
+        (1 row)
+        
+        Time: 74,199 ms
+
+-----------------------------------------------------------------------
+
+Теперь проиндексируем таблицу:
+
+        => create unique index bigtable_id on bigtable(id);
+        CREATE INDEX
+        Time: 318,257 ms
+
+        => select * from bigtable where id=42;
+         id |         t          
+        ----+--------------------
+         42 | This is a line #42
+        (1 row)
+        
+        Time: 0,390 ms
+
+        => \timing off
+        Timing is off.
+
+Индекс не является универсальным средством увеличения производительности. В общем случае
+индекс может быть полезен, если из таблицы требуется выбрать существенно меньше данных,
+чем в ней находится. Кроме того, надо учитывать накладные расходы на обновление индекса
+при изменении таблицы.
+
+-----------------------------------------------------------------------
+
+ХРАНИМЫЕ ФУНКЦИИ
+~~~~~~~~~~~~~~~~
+
+Простой пример функции на SQL:
+
+        => create function random_text(len integer) returns text as $$
+        =>   select string_agg(chr(trunc(65+random()*26)::integer),'') from generate_series(1,$1);
+        => $$ language sql;
+        ERROR:  function "random_text" already exists with same argument types
+
+Теперь функцию можно использовать в запросах:
+
+        => select random_text(10);
+         random_text 
+        -------------
+         UDFFISUWFY
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+ТРИГГЕРЫ
+~~~~~~~~
+
+Продемонстрируем триггер для сохранения времени последнего изменения строк.
+Добавим поле в таблицу people:
+
+        => alter table people add column last_update timestamp;
+        ALTER TABLE
+
+Создадим функцию, которая будут использоваться в триггере:
+
+        => create function set_last_update() returns trigger as $$
+        => begin
+        =>   new.last_update := current_timestamp;
+        =>   return new;
+        => end;
+        => $$ language plpgsql;
+        CREATE FUNCTION
+
+-----------------------------------------------------------------------
+
+И собственно триггер:
+
+        => create trigger people_last_update
+        =>   before update or insert on people
+        =>   for each row
+        =>   execute procedure set_last_update();
+        CREATE TRIGGER
+
+-----------------------------------------------------------------------
+
+Проверим работоспособность вставки:
+
+        => insert into people(id, name) values (3, 'Сидоров');
+        INSERT 0 1
+
+        => select * from people;
+         id |  name   | employed |        last_update         
+        ----+---------+----------+----------------------------
+          2 | Петров  | f        | 
+          3 | Сидоров |          | 2015-10-19 18:47:52.087947
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+И обновления:
+
+        => update people set employed = true where id = 2;
+        UPDATE 1
+
+        => select * from people;
+         id |  name   | employed |        last_update         
+        ----+---------+----------+----------------------------
+          3 | Сидоров |          | 2015-10-19 18:47:52.087947
+          2 | Петров  | t        | 2015-10-19 18:47:52.09371
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+НАСЛЕДОВАНИЕ И СЕКЦИОНИРОВАНИЕ
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Будем вести ежедневный учет доходов компании, разделяя их между двумя филиалами
+в Москве и Санкт-Петербурге.
+
+        => create table revenue(
+        =>   amount money,
+        =>   accounting_date date,
+        =>   city char(3) check (city in ('MSK','SPB'))
+        => );
+        CREATE TABLE
+
+Создадим две дочерние таблицы:
+
+        => create table revenue_msk() inherits (revenue);
+        CREATE TABLE
+
+        => create table revenue_spb() inherits (revenue);
+        CREATE TABLE
+
+-----------------------------------------------------------------------
+
+Теперь требуется триггер, перенаправляющий данные из родительской таблицы в дочерние:
+
+        => create function revenue_insert() returns trigger as $$
+        => begin
+        =>   if new.city = 'MSK' then
+        =>     insert into revenue_msk select new.*;
+        =>   else
+        =>     insert into revenue_spb select new.*;
+        =>   end if;
+        =>   return null;
+        => end;
+        => $$ language plpgsql;
+        CREATE FUNCTION
+
+        => create trigger revenue_partition
+        =>   before insert on revenue
+        =>   for each row
+        =>   execute procedure revenue_insert();
+        CREATE TRIGGER
+
+-----------------------------------------------------------------------
+
+Проверим результат.
+
+        => insert into revenue values (100.00, current_date, 'MSK');
+        INSERT 0 0
+
+При запросе из родительской таблицы запись будет выбрана...
+
+        => select * from revenue;
+           amount   | accounting_date | city 
+        ------------+-----------------+------
+         100.00 руб | 2015-10-19      | MSK
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+...но в самой родительской таблице ее нет...
+
+        => select * from only revenue;
+         amount | accounting_date | city 
+        --------+-----------------+------
+        (0 rows)
+        
+
+...так как она была перенаправлена в дочернюю таблицу триггером.
+
+        => select * from revenue_msk;
+           amount   | accounting_date | city 
+        ------------+-----------------+------
+         100.00 руб | 2015-10-19      | MSK
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Наполним таблицу большим количеством данных.
+
+        => insert into revenue select random()*100::money, current_date-s.n, 'MSK' from generate_series(1,1000000) as s(n);
+        INSERT 0 0
+
+        => insert into revenue select random()*100::money, current_date-s.n, 'SPB' from generate_series(1,1000) as s(n);
+        INSERT 0 0
+
+-----------------------------------------------------------------------
+
+Сравним время выполнения запросов для разных городов:
+
+        => \timing on
+        Timing is on.
+
+        => select count(*) from revenue where city='SPB';
+         count 
+        -------
+          1000
+        (1 row)
+        
+        Time: 358,153 ms
+
+        => select count(*) from revenue where city='MSK';
+          count  
+        ---------
+         1000001
+        (1 row)
+        
+        Time: 150,206 ms
+
+Время отличается не сильно.
+
+-----------------------------------------------------------------------
+
+Теперь добавим ограничивающие условия на дочерние таблицы:
+
+        => alter table revenue_msk add constraint partition_check check (city='MSK');
+        ALTER TABLE
+        Time: 98,174 ms
+
+        => alter table revenue_spb add constraint partition_check check (city='SPB');
+        ALTER TABLE
+        Time: 1,210 ms
+
+-----------------------------------------------------------------------
+
+Снова сравним время:
+
+        => select count(*) from revenue where city='SPB';
+         count 
+        -------
+          1000
+        (1 row)
+        
+        Time: 0,513 ms
+
+        => select count(*) from revenue where city='MSK';
+          count  
+        ---------
+         1000001
+        (1 row)
+        
+        Time: 149,306 ms
+
+        => \timing off
+        Timing is off.
+
+На этот раз время отличается значительно, так оптимизатор перестал заглядывать
+в ненужную секцию.
+
+-----------------------------------------------------------------------
+
+ПРЕДСТАВЛЕНИЯ
+~~~~~~~~~~~~~
+
+Создадим представление для суммы дохода по городам за все время.
+
+        => create view revenue_by_city as
+        =>   select city, sum(amount) from revenue group by city;
+        CREATE VIEW
+
+Запрос будет выполняться при обращении к представлению:
+
+        => \timing on
+        Timing is on.
+
+        => select * from revenue_by_city;
+         city |        sum        
+        ------+-------------------
+         SPB  |     49 213.46 руб
+         MSK  | 50 009 034.43 руб
+        (2 rows)
+        
+        Time: 242,405 ms
+
+-----------------------------------------------------------------------
+
+Материализованное представление сохраняет результат запроса.
+
+        => create materialized view revenue_by_city_m as
+
+        =>   select city, sum(amount) from revenue group by city;
+        SELECT 2
+        Time: 248,524 ms
+
+        => select * from revenue_by_city_m;
+         city |        sum        
+        ------+-------------------
+         SPB  |     49 213.46 руб
+         MSK  | 50 009 034.43 руб
+        (2 rows)
+        
+        Time: 0,286 ms
+
+        => \timing off
+        Timing is off.
+
+-----------------------------------------------------------------------
+
+Изменение в данных будет сразу же отражено в представлении:
+
+        => insert into revenue values (1000000.00, current_date, 'SPB');
+        INSERT 0 0
+
+        => select * from revenue_by_city;
+         city |        sum        
+        ------+-------------------
+         SPB  |  1 049 213.46 руб
+         MSK  | 50 009 034.43 руб
+        (2 rows)
+        
+
+Но не в материализованном представлении.
+
+        => select * from revenue_by_city_m;
+         city |        sum        
+        ------+-------------------
+         SPB  |     49 213.46 руб
+         MSK  | 50 009 034.43 руб
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+Изменения появятся только после обновления материализованного представления:
+
+        => refresh materialized view revenue_by_city_m;
+        REFRESH MATERIALIZED VIEW
+
+        => select * from revenue_by_city_m;
+         city |        sum        
+        ------+-------------------
+         SPB  |  1 049 213.46 руб
+         MSK  | 50 009 034.43 руб
+        (2 rows)
+        
+
+Конец демонстрации.
+
+-----------------------------------------------------------------------
+
+        => \q

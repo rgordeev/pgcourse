@@ -1,0 +1,804 @@
+
+СОЗДАНИЕ ОБЪЕКТОВ
+~~~~~~~~~~~~~~~~~
+
+Создадим роль role1 и одноименную схему. Эта роль будет владельцем нескольких объектов.
+
+        psql 
+
+        postgres=# create user role1;
+        CREATE ROLE
+
+        postgres=# create schema role1;
+        CREATE SCHEMA
+
+        postgres=# grant create, usage on schema role1 to role1;
+        GRANT
+
+        postgres=# \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> select current_schemas(true);
+              current_schemas      
+        ---------------------------
+         {pg_catalog,role1,public}
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Создадим две таблицы и функцию.
+
+        role1=> create table t1(n numeric);
+        CREATE TABLE
+
+        role1=> create table t2(n numeric, m numeric);
+        CREATE TABLE
+
+        role1=> create function f1() returns integer as $$ select 1; $$ language sql;
+        CREATE FUNCTION
+
+-----------------------------------------------------------------------
+
+Создадим роль role2, из-под которой будем обращаться к объектам role1.
+
+        role1=> \c - postgres
+        You are now connected to database "postgres" as user "postgres".
+
+        postgres=# create user role2;
+        CREATE ROLE
+
+        postgres=# \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+-----------------------------------------------------------------------
+
+ПРИВИЛЕГИИ
+~~~~~~~~~~
+
+Попробуем обратиться к таблице t1.
+
+        role2=> select * from t1;
+        ERROR:  relation "t1" does not exist
+        LINE 1: select * from t1;
+                              ^
+
+В чем причина ошибки?
+
+-----------------------------------------------------------------------
+
+Ошибка в том, что такой таблицы нет у нас в пути поиска:
+
+        role2=> select current_schemas(true);
+           current_schemas   
+        ---------------------
+         {pg_catalog,public}
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Обратимся с явным указанием имени схемы:
+
+        role2=> select * from role1.t1;
+        ERROR:  permission denied for schema role1
+        LINE 1: select * from role1.t1;
+                              ^
+
+В чем причина ошибки?
+
+-----------------------------------------------------------------------
+
+Доступа к схеме нет, так как мы не суперпользователь, не владелец, и у нас нет привилегий.
+
+        role2=> \dn+ role1
+                            List of schemas
+         Name  |  Owner   |  Access privileges   | Description 
+        -------+----------+----------------------+-------------
+         role1 | postgres | postgres=UC/postgres+| 
+               |          | role1=UC/postgres    | 
+        (1 row)
+        
+
+В каждой строке access privileges отображается роль, какими привилегиями она наделена и кем они ей выданы:
+  роль=привилегии/кем_предоставлены
+
+-----------------------------------------------------------------------
+
+Выдадим доступ к схеме для role2.
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant create, usage on schema role1 to role2;
+        WARNING:  no privileges were granted for "role1"
+        GRANT
+
+Почему привилегия не выдалась?
+
+-----------------------------------------------------------------------
+
+Привилегия не выдалась, так как у нас нет права ее перевыдачи.
+
+        role1=> \dn+
+                                  List of schemas
+          Name  |  Owner   |  Access privileges   |      Description       
+        --------+----------+----------------------+------------------------
+         public | postgres | postgres=UC/postgres+| standard public schema
+                |          | =UC/postgres         | 
+         role1  | postgres | postgres=UC/postgres+| 
+                |          | role1=UC/postgres    | 
+        (2 rows)
+        
+
+Пустая роль обозначает роль public (общая группа для всех ролей).
+Обратите внимание, что по умолчанию все имеют доступ к схеме public.
+
+-----------------------------------------------------------------------
+
+Сделаем role1 владельцем схемы role1:
+
+        role1=> \c - postgres
+        You are now connected to database "postgres" as user "postgres".
+
+        postgres=# alter schema role1 owner to role1;
+        ALTER SCHEMA
+
+        postgres=# \dn+
+                                  List of schemas
+          Name  |  Owner   |  Access privileges   |      Description       
+        --------+----------+----------------------+------------------------
+         public | postgres | postgres=UC/postgres+| standard public schema
+                |          | =UC/postgres         | 
+         role1  | role1    | role1=UC/role1       | 
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+Выдаем доступ:
+
+        role1=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant create, usage on schema role1 to role2;
+        GRANT
+
+-----------------------------------------------------------------------
+
+Попробуем снова обратиться к таблице:
+
+        role1=> \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> select * from role1.t1;
+        ERROR:  permission denied for relation t1
+
+В чем причина ошибки?
+
+-----------------------------------------------------------------------
+
+На этот раз у нас есть доступ к схеме, но нет доступа к самой таблице.
+
+        role2=> \dp role1.t1
+                                  Access privileges
+         Schema | Name | Type  | Access privileges | Column access privileges 
+        --------+------+-------+-------------------+--------------------------
+         role1  | t1   | table |                   | 
+        (1 row)
+        
+
+Привилегии отображаются в одном и том же формате: роль=привилегии/кем_предоставлены
+В зависимости от типа объекта меняется только список привилегий. Для таблиц это:
+  a = insert    - вставка  (append)
+  r = select    - чтение   (read)
+  w = update    - запись   (write)
+  d = delete    - удаление (delete)
+  D = truncate  - очистка  (DELETE)
+  x = reference - ссылка   (x-ref?)
+  t = trigger   - триггер  (trigger)
+
+-----------------------------------------------------------------------
+
+Выдадим доступ на чтение:
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant select on t1 to role2;
+        GRANT
+
+        role1=> \dp t1
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1+| 
+                |      |       | role2=r/role1       | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Снова попробуем обратиться к таблице:
+
+        role1=> \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> select * from role1.t1;
+         n 
+        ---
+        (0 rows)
+        
+
+На этот раз с привилегиями все в порядке.
+
+-----------------------------------------------------------------------
+
+Для того, чтобы обращаться к таблице без указания схемы, можно изменить путь доступа.
+
+        role2=> set search_path=role1;
+        SET
+
+        role2=> select current_schemas(true);
+          current_schemas   
+        --------------------
+         {pg_catalog,role1}
+        (1 row)
+        
+
+        role2=> select * from t1;
+         n 
+        ---
+        (0 rows)
+        
+
+-----------------------------------------------------------------------
+
+Попробуем теперь добавить строку в таблицу:
+
+        role2=> insert into t1 values (42);
+        ERROR:  permission denied for relation t1
+
+Ошибка, так как привилегия на вставку не выдана.
+
+-----------------------------------------------------------------------
+
+Выдадим доступ на вставку для всех таблиц схемы.
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant insert on all tables in schema role1 to role2;
+        GRANT
+
+        role1=> \dp role1.*
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1+| 
+                |      |       | role2=ar/role1      | 
+         role1  | t2   | table | role1=arwdDxt/role1+| 
+                |      |       | role2=a/role1       | 
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+Попробуем вставить строки:
+
+        role1=> \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> insert into t1 values (42);
+        ERROR:  relation "t1" does not exist
+        LINE 1: insert into t1 values (42);
+                            ^
+
+Почему не найдена таблица t1?
+
+-----------------------------------------------------------------------
+
+Таблица не найдена, так как путь поиска устанавливается командой set на время сеанса,
+а мы подключались под другим пользователем.
+Чтобы установить путь поиска долговременно, надо использовать alter role set search_path.
+A пока будем обращаться к объектам с указанием схемы.
+
+        role2=> insert into role1.t1 values (42);
+        INSERT 0 1
+
+        role2=> insert into role1.t2 values (1,2);
+        INSERT 0 1
+
+-----------------------------------------------------------------------
+
+При этом прочитать вставленные данные мы не сможем:
+
+        role2=> select * from role1.t2;
+        ERROR:  permission denied for relation t2
+
+-----------------------------------------------------------------------
+
+Привилегию чтения можно выдать на определенные столбцы:
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant select(m) on t2 to role2;
+        GRANT
+
+        role1=> \dp t2
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t2   | table | role1=arwdDxt/role1+| m:                      +
+                |      |       | role2=a/role1       |   role2=r/role1
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Проверим доступ:
+
+        role1=> \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> select * from role1.t2;
+        ERROR:  permission denied for relation t2
+
+        role2=> select m from role1.t2;
+         m 
+        ---
+         2
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Если необходимо, можно выдать все привилегии, не перечисляя их явно.
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant all on t1 to role2;
+        GRANT
+
+        role1=> \dp t1
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1+| 
+                |      |       | role2=arwdDxt/role1 | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Теперь role2 доступны все действия, например, удаление строк:
+
+        role1=> \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> delete from role1.t1;
+        DELETE 1
+
+-----------------------------------------------------------------------
+
+А удаление самой таблицы?
+
+        role2=> drop table role1.t1;
+        ERROR:  must be owner of relation t1
+
+В чем проблема?
+
+-----------------------------------------------------------------------
+
+Удалить таблицу может только владелец (или суперпользователь),
+специальной привилегии для этого не существует.
+
+-----------------------------------------------------------------------
+
+ГРУППОВЫЕ ПРИВИЛЕГИИ
+~~~~~~~~~~~~~~~~~~~~
+
+Если выдать привилегию групповой роли, то входящие в нее роли (с атрибутом inherit)
+будут автоматически обладать и групповыми привилегиями.
+
+        role2=> \du role1
+                   List of roles
+         Role name | Attributes | Member of 
+        -----------+------------+-----------
+         role1     |            | {}
+        
+
+Поскольку в атрибутах не числится "No inheritance", у role2 такой атрибут есть.
+
+-----------------------------------------------------------------------
+
+Проверим, сможем ли мы вызвать функцию.
+
+        role2=> select role1.f1();
+         f1 
+        ----
+          1
+        (1 row)
+        
+
+Можем. Почему?
+
+-----------------------------------------------------------------------
+
+Можем, так как роль public по умолчанию имеет привилегию на выполнение всех функций.
+Отзовем эту привилегию.
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> revoke execute on all functions in schema role1 from public;
+        REVOKE
+
+-----------------------------------------------------------------------
+
+Проверим.
+
+        role1=> \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> select role1.f1();
+        ERROR:  permission denied for function f1
+
+Теперь функцию вызвать нельзя, что и требовалось.
+
+-----------------------------------------------------------------------
+
+Посмотрим на примере доступа к таблицам.
+Есть ли доступ на очистку таблицы t2?
+
+        role2=> truncate table role1.t2;
+        ERROR:  permission denied for relation t2
+
+Доступа нет.
+
+        role2=> \dp role1.t2
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t2   | table | role1=arwdDxt/role1+| m:                      +
+                |      |       | role2=a/role1       |   role2=r/role1
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Выдадим доступ роли public.
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant truncate on table t2 to public;
+        GRANT
+
+        role1=> \dp t2
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t2   | table | role1=arwdDxt/role1+| m:                      +
+                |      |       | role2=a/role1      +|   role2=r/role1
+                |      |       | =D/role1            | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Проверим снова.
+
+        role1=> \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> truncate table role1.t2;
+        TRUNCATE TABLE
+
+Теперь доступ появился.
+
+-----------------------------------------------------------------------
+
+ПЕРЕДАЧА ПРАВА
+~~~~~~~~~~~~~~
+
+Создадим третью роль и попробуем передать ей права на таблицу, принадлежащую role1.
+
+        role2=> \c - postgres
+        You are now connected to database "postgres" as user "postgres".
+
+        postgres=# create user role3;
+        CREATE ROLE
+
+-----------------------------------------------------------------------
+
+У роли role2 есть полный доступ к t1:
+
+        postgres=# \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> \dp role1.t1
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1+| 
+                |      |       | role2=arwdDxt/role1 | 
+        (1 row)
+        
+
+Но она не может передать свои привилегии:
+
+        role2=> grant select on role1.t1 to role3;
+        WARNING:  no privileges were granted for "t1"
+        GRANT
+
+-----------------------------------------------------------------------
+
+Чтобы это было возможно, role1 должна выдать role2 право перевыдачи.
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant select,update on t1 to role2 with grant option;
+        GRANT
+
+        role1=> \dp t1
+                                    Access privileges
+         Schema | Name | Type  |   Access privileges   | Column access privileges 
+        --------+------+-------+-----------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1  +| 
+                |      |       | role2=ar*w*dDxt/role1 | 
+        (1 row)
+        
+
+Звездочки справа от символа привилегии показывают право перевыдачи.
+
+-----------------------------------------------------------------------
+
+Теперь role2 может поделиться привилегиями, в том числе и правом перевыдачи.
+
+        role1=> \c - role2
+        You are now connected to database "postgres" as user "role2".
+
+        role2=> grant select on role1.t1 to role3 with grant option;
+        GRANT
+
+        role2=> grant update on role1.t1 to role3;
+        GRANT
+
+        role2=> \dp role1.t1
+                                    Access privileges
+         Schema | Name | Type  |   Access privileges   | Column access privileges 
+        --------+------+-------+-----------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1  +| 
+                |      |       | role2=ar*w*dDxt/role1+| 
+                |      |       | role3=r*w/role2       | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Роль может получить одну и ту же привилегию из разных источников. Например:
+
+        role2=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> grant update on role1.t1 to role3;
+        GRANT
+
+        role1=> \dp role1.t1
+                                    Access privileges
+         Schema | Name | Type  |   Access privileges   | Column access privileges 
+        --------+------+-------+-----------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1  +| 
+                |      |       | role2=ar*w*dDxt/role1+| 
+                |      |       | role3=r*w/role2      +| 
+                |      |       | role3=w/role1         | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Обратите внимание: если привилегия выдается суперпользователем, она выдается от имени владельца.
+
+        role1=> \c - postgres
+        You are now connected to database "postgres" as user "postgres".
+
+        postgres=# grant truncate on role1.t1 to role3;
+        GRANT
+
+        postgres=# \dp role1.t1
+                                    Access privileges
+         Schema | Name | Type  |   Access privileges   | Column access privileges 
+        --------+------+-------+-----------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1  +| 
+                |      |       | role2=ar*w*dDxt/role1+| 
+                |      |       | role3=r*w/role2      +| 
+                |      |       | role3=wD/role1        | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Роль может отозвать привилегии только у той роли, которой она их непосредственно выдала.
+Например, role1 не сможет отозвать право перевыдачи у role3.
+
+        postgres=# \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> revoke grant option for select on role1.t1 from role3;
+        REVOKE
+
+Хотя никакой ошибки не фиксируется, но права не изменились:
+
+        role1=> \dp t1
+                                    Access privileges
+         Schema | Name | Type  |   Access privileges   | Column access privileges 
+        --------+------+-------+-----------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1  +| 
+                |      |       | role2=ar*w*dDxt/role1+| 
+                |      |       | role3=r*w/role2      +| 
+                |      |       | role3=wD/role1        | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Такая же ситуация и с самой привилегией.
+
+        role1=> revoke select on role1.t1 from role3;
+        REVOKE
+
+        role1=> \dp t1
+                                    Access privileges
+         Schema | Name | Type  |   Access privileges   | Column access privileges 
+        --------+------+-------+-----------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1  +| 
+                |      |       | role2=ar*w*dDxt/role1+| 
+                |      |       | role3=r*w/role2      +| 
+                |      |       | role3=wD/role1        | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+В то же время роль не может отозвать привилегии у роли, которой она их выдала,
+если последняя успела перевыдать привилегии кому-либо еще:
+
+        role1=> revoke grant option for select on role1.t1 from role2;
+        ERROR:  dependent privileges exist
+        HINT:  Use CASCADE to revoke them too.
+
+        role1=> revoke select on role1.t1 from role2;
+        ERROR:  dependent privileges exist
+        HINT:  Use CASCADE to revoke them too.
+
+-----------------------------------------------------------------------
+
+В таком случае привилегии надо отзывать по всей иерархии передачи с помощью cascade.
+
+        role1=> \dp t1
+                                    Access privileges
+         Schema | Name | Type  |   Access privileges   | Column access privileges 
+        --------+------+-------+-----------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1  +| 
+                |      |       | role2=ar*w*dDxt/role1+| 
+                |      |       | role3=r*w/role2      +| 
+                |      |       | role3=wD/role1        | 
+        (1 row)
+        
+
+        role1=> revoke grant option for select on role1.t1 from role2 cascade;
+        REVOKE
+
+        role1=> \dp t1
+                                    Access privileges
+         Schema | Name | Type  |  Access privileges   | Column access privileges 
+        --------+------+-------+----------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1 +| 
+                |      |       | role2=arw*dDxt/role1+| 
+                |      |       | role3=w/role2       +| 
+                |      |       | role3=wD/role1       | 
+        (1 row)
+        
+
+Как видим, у role2 пропало право перевыдачи привилегии, а у role3 была отозвана сама привилегия.
+
+-----------------------------------------------------------------------
+
+Аналогично можно отозвать по иерархии и саму привилегию.
+
+        role1=> revoke select on role1.t1 from role2 cascade;
+        REVOKE
+
+        role1=> \dp t1
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t1   | table | role1=arwdDxt/role1+| 
+                |      |       | role2=aw*dDxt/role1+| 
+                |      |       | role3=w/role2      +| 
+                |      |       | role3=wD/role1      | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+ПРИВИЛЕГИИ ПО УМОЛЧАНИЮ
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Рассмотрим привилегии по умолчанию.
+
+        role1=> \c - role1
+        You are now connected to database "postgres" as user "role1".
+
+        role1=> \ddp
+                 Default access privileges
+         Owner | Schema | Type | Access privileges 
+        -------+--------+------+-------------------
+        (0 rows)
+        
+
+Изначально привилегии не настроены.
+
+-----------------------------------------------------------------------
+
+При создании, например, таблицы, role2 не получит к ней доступа, что вполне очевидно:
+
+        role1=> create table t3(n numeric);
+        CREATE TABLE
+
+        role1=> \dp t3
+                                  Access privileges
+         Schema | Name | Type  | Access privileges | Column access privileges 
+        --------+------+-------+-------------------+--------------------------
+         role1  | t3   | table |                   | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Но можно настроить дополнительные правила для привилегий по умолчанию:
+
+        role1=> alter default privileges
+        => for role role1
+        => in schema role1
+        => grant select on tables to role2;
+        ALTER DEFAULT PRIVILEGES
+
+        role1=> \ddp
+                 Default access privileges
+         Owner | Schema | Type  | Access privileges 
+        -------+--------+-------+-------------------
+         role1 | role1  | table | role2=r/role1
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Теперь при создании любой таблицы ролью role1 в схеме role1 доступ автоматически будет предоставлен role2.
+
+        role1=> drop table t3;
+        DROP TABLE
+
+        role1=> create table t3(n numeric);
+        CREATE TABLE
+
+        role1=> \dp t3
+                                   Access privileges
+         Schema | Name | Type  |  Access privileges  | Column access privileges 
+        --------+------+-------+---------------------+--------------------------
+         role1  | t3   | table | role1=arwdDxt/role1+| 
+                |      |       | role2=r/role1       | 
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Конец демонстрации.
+
+-----------------------------------------------------------------------
+
+        role1=> \q

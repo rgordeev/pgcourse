@@ -1,0 +1,412 @@
+
+НАСТРОЙКА НЕПРЕРЫВНОГО АРХИВИРОВАНИЯ
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Внесем необходимые изменения в файл postgresql.conf.
+В данном случае мы просто скопируем заранее подготовленный файл...
+
+cp -n /usr/local/pgsql/data/postgresql.conf /home/postgres/postgresql.conf.old 
+cp dba1_17_postgresql.conf /usr/local/pgsql/data/postgresql.conf 
+
+-----------------------------------------------------------------------
+
+Вот какие параметры необходимо установить:
+* wal_level не ниже archive,
+* archive_mode = on,
+* archive_command - команда копирования.
+
+Проверим:
+
+egrep wal_level|archive_mode|archive_command dba1_17_postgresql.conf 
+wal_level = archive
+archive_mode = on
+archive_command = 'test ! -f /home/postgres/archivedir/%f && cp %p /home/postgres/archivedir/%f'
+
+-----------------------------------------------------------------------
+
+Требуется разрешить подключение к серверу по протоколу репликации.
+Сделаем это для локальных подключений:
+
+sed -i s/#\(local\s\+replication\)/\1/ /usr/local/pgsql/data/pg_hba.conf 
+tail -n 5 /usr/local/pgsql/data/pg_hba.conf 
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     postgres                                trust
+#host    replication     postgres        127.0.0.1/32            trust
+#host    replication     postgres        ::1/128                 trust
+
+-----------------------------------------------------------------------
+
+Очистим каталог /home/postgres/archivedir, куда будут сохраняться сегменты WAL.
+
+rm -rf /home/postgres/archivedir 
+mkdir /home/postgres/archivedir 
+ls -l /home/postgres/archivedir 
+total 0
+
+-----------------------------------------------------------------------
+
+Перезапустим сервер, чтобы изменения вступили в силу.
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+
+-----------------------------------------------------------------------
+
+После запуска, сервер переключится на новый сегмент WAL, а предыдущий будет скопирован в архив:
+
+ls -l /home/postgres/archivedir 
+total 0
+
+Обратите внимание: первые восемь цифр в номере сегмента - это номер текущей ветви времени.
+
+-----------------------------------------------------------------------
+
+Убедимся, что и дальнейшие переключения сегментов будут обрабатываться корректно.
+Подключимся к серверу и сделаем какие-нибудь изменения, например, создадим таблицу.
+
+        psql 
+
+        => create table backup_example(t text);
+        CREATE TABLE
+
+-----------------------------------------------------------------------
+
+Поскольку для переключения на новый сегмент WAL надо сделать много изменений
+(либо задать параметр archive_timeout, что мы не сделали),
+то просто переключимся на новый сегмент вручную.
+
+Вот какой сегмент используется сейчас:
+
+        => select pg_xlogfile_name(pg_current_xlog_location());
+             pg_xlogfile_name     
+        --------------------------
+         00000003000000000000003B
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+А вот какой будет после переключения:
+
+        => select pg_switch_xlog();
+         pg_switch_xlog 
+        ----------------
+         0/3B929E98
+        (1 row)
+        
+
+        => insert into backup_example values ('После переключения сегмента');
+        INSERT 0 1
+
+        => select pg_xlogfile_name(pg_current_xlog_location());
+             pg_xlogfile_name     
+        --------------------------
+         00000003000000000000003C
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Еще раз проверим содержимое каталога-архива:
+
+ls -l /home/postgres/archivedir 
+total 9468
+-rw------- 1 postgres postgres 9695232 окт.  19 18:48 00000003000000000000003B
+
+Все в порядке, архивирование работает.
+
+-----------------------------------------------------------------------
+
+СОЗДАНИЕ БАЗОВОЙ РЕЗЕРВНОЙ КОПИИ
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Теперь самое время создать базовую резервную копию.
+Убедимся, что в кластере нет пользовательских табличных пространств, так как
+их наличие усложнило бы процесс резервирования и восстановления.
+
+        => \db
+               List of tablespaces
+            Name    |  Owner   | Location 
+        ------------+----------+----------
+         pg_default | postgres | 
+         pg_global  | postgres | 
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+Выполним команду pg_basebackup. Используем формат по умолчанию (plain),
+в качестве каталога для сохранения используем /home/postgres/basebackupdir.
+
+rm -rf /home/postgres/basebackupdir 
+mkdir /home/postgres/basebackupdir 
+pg_basebackup --pgdata=/home/postgres/basebackupdir "--label=Base backup test" 
+
+-----------------------------------------------------------------------
+
+Проверим содержимое каталога:
+
+ls -l /home/postgres/basebackupdir 
+total 112
+-rw------- 1 postgres postgres   199 окт.  19 18:48 backup_label
+drwx------ 7 postgres postgres  4096 окт.  19 18:48 base
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 global
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_clog
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_dynshmem
+-rw------- 1 postgres postgres  4467 окт.  19 18:48 pg_hba.conf
+-rw------- 1 postgres postgres  1636 окт.  19 18:48 pg_ident.conf
+drwx------ 4 postgres postgres  4096 окт.  19 18:48 pg_logical
+drwx------ 4 postgres postgres  4096 окт.  19 18:48 pg_multixact
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_notify
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_replslot
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_serial
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_snapshots
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_stat
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_stat_tmp
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_subtrans
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_tblspc
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_twophase
+-rw------- 1 postgres postgres     4 окт.  19 18:48 PG_VERSION
+drwx------ 3 postgres postgres  4096 окт.  19 18:48 pg_xlog
+-rw------- 1 postgres postgres    84 окт.  19 18:48 postgresql.auto.conf
+-rw------- 1 postgres postgres 21343 окт.  19 18:48 postgresql.conf
+
+-----------------------------------------------------------------------
+
+Заглянем в файл метки:
+
+cat /home/postgres/basebackupdir/backup_label 
+START WAL LOCATION: 0/3D000028 (file 00000003000000000000003D)
+CHECKPOINT LOCATION: 0/3D000028
+BACKUP METHOD: streamed
+BACKUP FROM: master
+START TIME: 2015-10-19 18:48:21 MSK
+LABEL: Base backup test
+
+-----------------------------------------------------------------------
+
+Посмотрим в каталог pg_xlog:
+
+ls -l /home/postgres/basebackupdir/pg_xlog 
+total 4
+drwx------ 2 postgres postgres 4096 окт.  19 18:48 archive_status
+
+Тут пусто, что и следовало ожидать.
+
+-----------------------------------------------------------------------
+
+ВОССТАНОВЛЕНИЕ
+~~~~~~~~~~~~~~
+
+Сделаем еще несколько изменений в таблице.
+
+        => insert into backup_example values ('Еще изменение');
+        INSERT 0 1
+
+        => select pg_switch_xlog();
+         pg_switch_xlog 
+        ----------------
+         0/3E000170
+        (1 row)
+        
+
+        => insert into backup_example values ('Прямо перед катастрофой');
+        INSERT 0 1
+
+-----------------------------------------------------------------------
+
+Будем считать, что в этот момент сервер сломался.
+
+pg_ctl stop -m fast -w 
+waiting for server to shut down.... done
+server stopped
+
+-----------------------------------------------------------------------
+
+Скопируем pg_xlog на случай, если там остались неперенесенные в архив сегменты.
+
+rm -rf /home/postgres/backup_xlog 
+mkdir /home/postgres/backup_xlog 
+
+cp -r $PGDATA/pg_xlog/* /home/postgres/backup_xlog
+
+-----------------------------------------------------------------------
+
+После этого все содержимое PGDATA можно удалять.
+(На продуктивной среде имеет смысл скопировать содержимое каталога до того момента,
+как восстановление будет успешно завершено и проверено.)
+
+rm -rf $PGDATA/*
+
+ls -l /usr/local/pgsql/data 
+total 0
+
+-----------------------------------------------------------------------
+
+Восстанавливаемся из базовой резервной копии:
+cp -r /home/postgres/basebackupdir/* $PGDATA
+
+ls -l /usr/local/pgsql/data 
+total 112
+-rw------- 1 postgres postgres   199 окт.  19 18:48 backup_label
+drwx------ 7 postgres postgres  4096 окт.  19 18:48 base
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 global
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_clog
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_dynshmem
+-rw------- 1 postgres postgres  4467 окт.  19 18:48 pg_hba.conf
+-rw------- 1 postgres postgres  1636 окт.  19 18:48 pg_ident.conf
+drwx------ 4 postgres postgres  4096 окт.  19 18:48 pg_logical
+drwx------ 4 postgres postgres  4096 окт.  19 18:48 pg_multixact
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_notify
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_replslot
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_serial
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_snapshots
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_stat
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_stat_tmp
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_subtrans
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_tblspc
+drwx------ 2 postgres postgres  4096 окт.  19 18:48 pg_twophase
+-rw------- 1 postgres postgres     4 окт.  19 18:48 PG_VERSION
+drwx------ 3 postgres postgres  4096 окт.  19 18:48 pg_xlog
+-rw------- 1 postgres postgres    84 окт.  19 18:48 postgresql.auto.conf
+-rw------- 1 postgres postgres 21343 окт.  19 18:48 postgresql.conf
+
+-----------------------------------------------------------------------
+
+И копируем на место сохраненный pg_xlog:
+cp -r /home/postgres/backup_xlog/* $PGDATA/pg_xlog
+
+ls -l /usr/local/pgsql/data/pg_xlog 
+total 131088
+-rw------- 1 postgres postgres       42 окт.  19 18:48 00000002.history
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 00000003000000000000003D
+-rw------- 1 postgres postgres      296 окт.  19 18:48 00000003000000000000003D.00000028.backup
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 00000003000000000000003E
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 00000003000000000000003F
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 000000030000000000000040
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 000000030000000000000041
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 000000030000000000000042
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 000000030000000000000043
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 000000030000000000000044
+-rw------- 1 postgres postgres       85 окт.  19 18:48 00000003.history
+drwx------ 2 postgres postgres     4096 окт.  19 18:48 archive_status
+
+-----------------------------------------------------------------------
+
+Теперь надо создать файл recovery.conf.
+Можно было бы воспользоваться шаблоном:
+
+ls -l /usr/local/pgsql/share/recovery.conf.sample 
+-rw-r--r-- 1 root root 5587 сент. 29 15:38 /usr/local/pgsql/share/recovery.conf.sample
+
+-----------------------------------------------------------------------
+
+Но в нашем случае файл будет состоять из одного параметра,
+Поэтому просто создадим его.
+
+cat <<EOF > $PGDATA/recovery.conf
+restore_command = 'cp /home/postgres/archivedir/%f %p'
+EOF
+
+cat /usr/local/pgsql/data/recovery.conf 
+restore_command = 'cp /home/postgres/archivedir/%f %p'
+
+-----------------------------------------------------------------------
+
+Можно стартовать сервер.
+
+pg_ctl start -w -l /home/postgres/logfile 
+waiting for server to start..... done
+server started
+
+Восстановление завершено!
+
+-----------------------------------------------------------------------
+
+Проверим это. Подключимся к серверу:
+
+        => \q
+
+        psql 
+
+И проверим содержимое таблицы.
+
+        => select * from backup_example;
+                      t              
+        -----------------------------
+         После переключения сегмента
+         Еще изменение
+         Прямо перед катастрофой
+        (3 rows)
+        
+
+Как видим, все последние изменения успешно восстановлены.
+
+-----------------------------------------------------------------------
+
+Что стало с ветвью времени после восстановления?
+
+        => select pg_xlogfile_name(pg_current_xlog_location());
+             pg_xlogfile_name     
+        --------------------------
+         000000040000000000000040
+        (1 row)
+        
+
+Как видим, номер увеличился на единицу.
+
+-----------------------------------------------------------------------
+
+В каталоге pg_xlog появился файл, соответствующий этой ветви:
+
+        => select left( pg_xlogfile_name(pg_current_xlog_location()) ,8) as timeline \gset
+
+        => \setenv TIMELINE :timeline
+
+        => \! ls -l $PGDATA/pg_xlog/$TIMELINE.history
+        -rw------- 1 postgres postgres 128 окт.  19 18:48 /usr/local/pgsql/data/pg_xlog/00000004.history
+
+-----------------------------------------------------------------------
+
+Вот какая информация в нем есть:
+
+        => \! cat $PGDATA/pg_xlog/$TIMELINE.history
+        1	0/16000090	no recovery target specified
+        
+        2	0/2B000090	no recovery target specified
+        
+        3	0/40000090	no recovery target specified
+
+-----------------------------------------------------------------------
+
+Этот файл подлежит архивации вместе с сегментами WAL:
+
+ls -l /home/postgres/archivedir 
+total 98312
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 00000003000000000000003B
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 00000003000000000000003C
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 00000003000000000000003D
+-rw------- 1 postgres postgres      296 окт.  19 18:48 00000003000000000000003D.00000028.backup
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 00000003000000000000003E
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 00000003000000000000003F
+-rw------- 1 postgres postgres 16777216 окт.  19 18:48 000000030000000000000040
+-rw------- 1 postgres postgres      128 окт.  19 18:48 00000004.history
+
+-----------------------------------------------------------------------
+
+Конец демонстрации.
+Восстановим настройки.
+
+        => \q
+
+cp /home/postgres/postgresql.conf.old /usr/local/pgsql/data/postgresql.conf 
+pg_ctl restart -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+server starting
+
+-----------------------------------------------------------------------

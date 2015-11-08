@@ -1,0 +1,469 @@
+
+Системный каталог
+~~~~~~~~~~~~~~~~~
+
+Создадим БД и тестовые объекты
+
+psql postgres -c "CREATE DATABASE dba1_07_demo;" 
+CREATE DATABASE
+        psql dba1_07_demo
+
+        => create table master_table (id int primary key, c text not null);
+        CREATE TABLE
+
+        => comment on table master_table is 'Тестовая таблица';
+        COMMENT
+
+        => create table detail_table (id int references master_table(id), c text);
+        CREATE TABLE
+
+        => create view my_view as select * from detail_table;
+        CREATE VIEW
+
+        => comment on column my_view.id is 'Идентификатор';
+        COMMENT
+
+-----------------------------------------------------------------------
+
+Список таблиц системного словаря:
+
+        => \dt pg_catalog.*
+                            List of relations
+           Schema   |          Name           | Type  |  Owner   
+        ------------+-------------------------+-------+----------
+         pg_catalog | pg_aggregate            | table | postgres
+         pg_catalog | pg_am                   | table | postgres
+         pg_catalog | pg_amop                 | table | postgres
+         pg_catalog | pg_amproc               | table | postgres
+         pg_catalog | pg_attrdef              | table | postgres
+         pg_catalog | pg_attribute            | table | postgres
+         pg_catalog | pg_auth_members         | table | postgres
+         pg_catalog | pg_authid               | table | postgres
+         pg_catalog | pg_cast                 | table | postgres
+         pg_catalog | pg_class                | table | postgres
+         pg_catalog | pg_collation            | table | postgres
+         pg_catalog | pg_constraint           | table | postgres
+         pg_catalog | pg_conversion           | table | postgres
+         pg_catalog | pg_database             | table | postgres
+         pg_catalog | pg_db_role_setting      | table | postgres
+         pg_catalog | pg_default_acl          | table | postgres
+         pg_catalog | pg_depend               | table | postgres
+         pg_catalog | pg_description          | table | postgres
+         pg_catalog | pg_enum                 | table | postgres
+         pg_catalog | pg_event_trigger        | table | postgres
+         pg_catalog | pg_extension            | table | postgres
+         pg_catalog | pg_foreign_data_wrapper | table | postgres
+         pg_catalog | pg_foreign_server       | table | postgres
+         pg_catalog | pg_foreign_table        | table | postgres
+         pg_catalog | pg_index                | table | postgres
+         pg_catalog | pg_inherits             | table | postgres
+         pg_catalog | pg_language             | table | postgres
+         pg_catalog | pg_largeobject          | table | postgres
+         pg_catalog | pg_largeobject_metadata | table | postgres
+         pg_catalog | pg_namespace            | table | postgres
+         pg_catalog | pg_opclass              | table | postgres
+         pg_catalog | pg_operator             | table | postgres
+         pg_catalog | pg_opfamily             | table | postgres
+         pg_catalog | pg_pltemplate           | table | postgres
+         pg_catalog | pg_proc                 | table | postgres
+         pg_catalog | pg_range                | table | postgres
+         pg_catalog | pg_rewrite              | table | postgres
+         pg_catalog | pg_seclabel             | table | postgres
+         pg_catalog | pg_shdepend             | table | postgres
+         pg_catalog | pg_shdescription        | table | postgres
+         pg_catalog | pg_shseclabel           | table | postgres
+         pg_catalog | pg_statistic            | table | postgres
+         pg_catalog | pg_tablespace           | table | postgres
+         pg_catalog | pg_trigger              | table | postgres
+         pg_catalog | pg_ts_config            | table | postgres
+         pg_catalog | pg_ts_config_map        | table | postgres
+         pg_catalog | pg_ts_dict              | table | postgres
+         pg_catalog | pg_ts_parser            | table | postgres
+         pg_catalog | pg_ts_template          | table | postgres
+         pg_catalog | pg_type                 | table | postgres
+         pg_catalog | pg_user_mapping         | table | postgres
+        (51 rows)
+        
+
+-----------------------------------------------------------------------
+
+Список представлений системного словаря:
+
+        => \dv pg_catalog.*
+                               List of relations
+           Schema   |              Name               | Type |  Owner   
+        ------------+---------------------------------+------+----------
+         pg_catalog | pg_available_extension_versions | view | postgres
+         pg_catalog | pg_available_extensions         | view | postgres
+         pg_catalog | pg_cursors                      | view | postgres
+         pg_catalog | pg_group                        | view | postgres
+         pg_catalog | pg_indexes                      | view | postgres
+         pg_catalog | pg_locks                        | view | postgres
+         pg_catalog | pg_matviews                     | view | postgres
+         pg_catalog | pg_prepared_statements          | view | postgres
+         pg_catalog | pg_prepared_xacts               | view | postgres
+         pg_catalog | pg_replication_slots            | view | postgres
+         pg_catalog | pg_roles                        | view | postgres
+         pg_catalog | pg_rules                        | view | postgres
+         pg_catalog | pg_seclabels                    | view | postgres
+         pg_catalog | pg_settings                     | view | postgres
+         pg_catalog | pg_shadow                       | view | postgres
+         pg_catalog | pg_stat_activity                | view | postgres
+         pg_catalog | pg_stat_all_indexes             | view | postgres
+         pg_catalog | pg_stat_all_tables              | view | postgres
+         pg_catalog | pg_stat_archiver                | view | postgres
+         pg_catalog | pg_stat_bgwriter                | view | postgres
+         pg_catalog | pg_stat_database                | view | postgres
+         pg_catalog | pg_stat_database_conflicts      | view | postgres
+         pg_catalog | pg_stat_replication             | view | postgres
+         pg_catalog | pg_stat_sys_indexes             | view | postgres
+         pg_catalog | pg_stat_sys_tables              | view | postgres
+         pg_catalog | pg_stat_user_functions          | view | postgres
+         pg_catalog | pg_stat_user_indexes            | view | postgres
+         pg_catalog | pg_stat_user_tables             | view | postgres
+         pg_catalog | pg_stat_xact_all_tables         | view | postgres
+         pg_catalog | pg_stat_xact_sys_tables         | view | postgres
+         pg_catalog | pg_stat_xact_user_functions     | view | postgres
+         pg_catalog | pg_stat_xact_user_tables        | view | postgres
+         pg_catalog | pg_statio_all_indexes           | view | postgres
+         pg_catalog | pg_statio_all_sequences         | view | postgres
+         pg_catalog | pg_statio_all_tables            | view | postgres
+         pg_catalog | pg_statio_sys_indexes           | view | postgres
+         pg_catalog | pg_statio_sys_sequences         | view | postgres
+         pg_catalog | pg_statio_sys_tables            | view | postgres
+         pg_catalog | pg_statio_user_indexes          | view | postgres
+         pg_catalog | pg_statio_user_sequences        | view | postgres
+         pg_catalog | pg_statio_user_tables           | view | postgres
+         pg_catalog | pg_stats                        | view | postgres
+         pg_catalog | pg_tables                       | view | postgres
+         pg_catalog | pg_timezone_abbrevs             | view | postgres
+         pg_catalog | pg_timezone_names               | view | postgres
+         pg_catalog | pg_user                         | view | postgres
+         pg_catalog | pg_user_mappings                | view | postgres
+         pg_catalog | pg_views                        | view | postgres
+        (48 rows)
+        
+
+-----------------------------------------------------------------------
+
+Список системных функций для определения размера объектов:
+
+        => \x
+        Expanded display is on.
+
+        => \df pg_catalog.pg_*size
+        List of functions
+        -[ RECORD 1 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_column_size
+        Result data type    | integer
+        Argument data types | "any"
+        Type                | normal
+        -[ RECORD 2 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_database_size
+        Result data type    | bigint
+        Argument data types | name
+        Type                | normal
+        -[ RECORD 3 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_database_size
+        Result data type    | bigint
+        Argument data types | oid
+        Type                | normal
+        -[ RECORD 4 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_indexes_size
+        Result data type    | bigint
+        Argument data types | regclass
+        Type                | normal
+        -[ RECORD 5 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_relation_size
+        Result data type    | bigint
+        Argument data types | regclass
+        Type                | normal
+        -[ RECORD 6 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_relation_size
+        Result data type    | bigint
+        Argument data types | regclass, text
+        Type                | normal
+        -[ RECORD 7 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_table_size
+        Result data type    | bigint
+        Argument data types | regclass
+        Type                | normal
+        -[ RECORD 8 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_tablespace_size
+        Result data type    | bigint
+        Argument data types | name
+        Type                | normal
+        -[ RECORD 9 ]-------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_tablespace_size
+        Result data type    | bigint
+        Argument data types | oid
+        Type                | normal
+        -[ RECORD 10 ]------+-----------------------
+        Schema              | pg_catalog
+        Name                | pg_total_relation_size
+        Result data type    | bigint
+        Argument data types | regclass
+        Type                | normal
+        
+
+        => \x
+        Expanded display is off.
+
+-----------------------------------------------------------------------
+
+Получение описания функции:
+
+        => \sf pg_table_size
+        CREATE OR REPLACE FUNCTION pg_catalog.pg_table_size(regclass)
+         RETURNS bigint
+         LANGUAGE internal
+         STRICT
+        AS $function$pg_table_size$function$
+
+Редактирование функции: \ef function_name
+
+-----------------------------------------------------------------------
+
+Получение размера баз данных кластера:
+
+        => \
+        select pd.datname as database_name \
+              ,pg_database_size (pd.oid) as db_size_bytes \
+              ,pg_size_pretty( \
+                  pg_database_size (pd.oid) \
+               ) as db_size_text \
+          from pg_database pd;
+         database_name | db_size_bytes | db_size_text 
+        ---------------+---------------+--------------
+         template1     |       6728352 | 6571 kB
+         template0     |       6570500 | 6417 kB
+         postgres      |     134253216 | 128 MB
+         dba1_07_demo  |       6802080 | 6643 kB
+         test          |       6843040 | 6683 kB
+        (5 rows)
+        
+
+-----------------------------------------------------------------------
+
+Команды \d* позволяют быстро получить информацию
+из таблиц системного словаря.
+
+Получить список таблиц:
+
+        => \dt
+                    List of relations
+         Schema |     Name     | Type  |  Owner   
+        --------+--------------+-------+----------
+         public | detail_table | table | postgres
+         public | master_table | table | postgres
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+Получить список представлений:
+
+        => \dv
+                 List of relations
+         Schema |  Name   | Type |  Owner   
+        --------+---------+------+----------
+         public | my_view | view | postgres
+        (1 row)
+        
+
+-----------------------------------------------------------------------
+
+Одной командой можно получить список нескольких типов объектов:
+\dtvismE
+  t - таблицы
+  v - представления
+  i - индексы
+  s - последовательности
+  m - материализованные представления
+  E - внешние таблицы
+
+        => \dtvi
+                              List of relations
+         Schema |       Name        | Type  |  Owner   |    Table     
+        --------+-------------------+-------+----------+--------------
+         public | detail_table      | table | postgres | 
+         public | master_table      | table | postgres | 
+         public | master_table_pkey | index | postgres | master_table
+         public | my_view           | view  | postgres | 
+        (4 rows)
+        
+
+-----------------------------------------------------------------------
+
+Модификатор + позволяет получить дополнительную информацию.
+Состав дополнительной информации предопределен и зависит от типа объекта
+
+        => \dt+
+                                    List of relations
+         Schema |     Name     | Type  |  Owner   |    Size    |   Description    
+        --------+--------------+-------+----------+------------+------------------
+         public | detail_table | table | postgres | 8192 bytes | 
+         public | master_table | table | postgres | 8192 bytes | Тестовая таблица
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+Модификатор S выводит системные объекты в дополнении к пользовательским.
+
+        => \dtS *table*
+                        List of relations
+           Schema   |       Name       | Type  |  Owner   
+        ------------+------------------+-------+----------
+         pg_catalog | pg_foreign_table | table | postgres
+         pg_catalog | pg_tablespace    | table | postgres
+         public     | detail_table     | table | postgres
+         public     | master_table     | table | postgres
+        (4 rows)
+        
+
+-----------------------------------------------------------------------
+
+Для получения информации об одном объекте 
+(таблица, представление, индекс, последовательность, внешняя таблица):
+
+        => \d master_table
+         Table "public.master_table"
+         Column |  Type   | Modifiers 
+        --------+---------+-----------
+         id     | integer | not null
+         c      | text    | not null
+        Indexes:
+            "master_table_pkey" PRIMARY KEY, btree (id)
+        Referenced by:
+            TABLE "detail_table" CONSTRAINT "detail_table_id_fkey" FOREIGN KEY (id) REFERENCES master_table(id)
+        
+
+-----------------------------------------------------------------------
+
+Модификатор + работает и для \d:
+
+        => \d+ my_view
+                          View "public.my_view"
+         Column |  Type   | Modifiers | Storage  |  Description  
+        --------+---------+-----------+----------+---------------
+         id     | integer |           | plain    | Идентификатор
+         c      | text    |           | extended | 
+        View definition:
+         SELECT detail_table.id,
+            detail_table.c
+           FROM detail_table;
+        
+
+-----------------------------------------------------------------------
+
+Использование REG* типов.
+
+Напишем запрос, который выводит столбцы представления my_view.
+Нам потребуются таблицы системного каталога:
+  pg_class - список объектов, включая представления
+  pg_attribute - список столбцов
+
+-----------------------------------------------------------------------
+
+        => select oid, relname from pg_class limit 5;
+          oid  |       relname        
+        -------+----------------------
+          2619 | pg_statistic
+          1247 | pg_type
+         16903 | pg_toast_16900
+         16905 | pg_toast_16900_index
+          2840 | pg_toast_2619
+        (5 rows)
+        
+
+        => select attrelid, attname from pg_attribute limit 5;
+         attrelid |   attname    
+        ----------+--------------
+             1255 | proname
+             1255 | pronamespace
+             1255 | proowner
+             1255 | prolang
+             1255 | procost
+        (5 rows)
+        
+
+-----------------------------------------------------------------------
+
+Две таблицы связаны по pg_class.OID - pg_attribute.attrelid
+Запрос на соединение двух таблиц:
+
+        => \
+        select c.attrelid, c.attname  \
+          from pg_attribute c, pg_class t \
+         where c.attrelid = t.oid \
+           and t.relname = 'my_view';
+         attrelid | attname 
+        ----------+---------
+            16919 | c
+            16919 | id
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+Запрос с использованием regclass:
+
+        => \
+        select attrelid, attname  \
+          from pg_attribute \
+         where attrelid = 'my_view'::regclass;
+         attrelid | attname 
+        ----------+---------
+            16919 | c
+            16919 | id
+        (2 rows)
+        
+
+-----------------------------------------------------------------------
+
+        => \q
+
+Посмотрим на запрос, которые выполняет psql для команды \dt
+
+psql dba1_07_demo -E -c \dt 
+********* QUERY **********
+SELECT n.nspname as "Schema",
+  c.relname as "Name",
+  CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view' WHEN 'i' THEN 'index' WHEN 'S' THEN 'sequence' WHEN 's' THEN 'special' WHEN 'f' THEN 'foreign table' END as "Type",
+  pg_catalog.pg_get_userbyid(c.relowner) as "Owner"
+FROM pg_catalog.pg_class c
+     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relkind IN ('r','')
+      AND n.nspname <> 'pg_catalog'
+      AND n.nspname <> 'information_schema'
+      AND n.nspname !~ '^pg_toast'
+  AND pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY 1,2;
+**************************
+
+            List of relations
+ Schema |     Name     | Type  |  Owner   
+--------+--------------+-------+----------
+ public | detail_table | table | postgres
+ public | master_table | table | postgres
+(2 rows)
+
+
+-----------------------------------------------------------------------
+
+psql postgres -c "DROP DATABASE dba1_07_demo;" 
+DROP DATABASE
+
+Конец демонстрации.
+
+-----------------------------------------------------------------------
